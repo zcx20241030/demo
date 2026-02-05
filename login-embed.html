@@ -1,14 +1,11 @@
-<!-- 第一步：全局样式，强制独占页面 -->
+<!-- 第一步：先定义全局样式，强制隐藏 JupyterLite 所有内容，直到验证通过 -->
 <style>
-    /* 1. 独占页面，隐藏所有无关内容 */
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow: hidden !important;
+    /* 1. 强制隐藏整个页面的所有内容（除了登录遮罩） */
+    body * {
+        display: none !important;
     }
 
-    /* 2. 登录遮罩层（独占整个视口，无任何元素能穿透） */
+    /* 2. 登录遮罩样式（单独生效，不被上面的全局隐藏影响） */
     #loginMask {
         position: fixed !important;
         top: 0 !important;
@@ -20,152 +17,318 @@
         justify-content: center !important;
         align-items: center !important;
         z-index: 999999 !important;
-        /* 强制固定，永不被滚动或缩放影响 */
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+    }
+
+    /* 3. 登录框内部样式 */
+    #loginMask .login-container {
+        width: 100% !important;
+        max-width: 400px !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+        padding: 48px 32px !important;
+        display: block !important;
+        animation: slideIn 0.4s ease-out !important;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    #loginMask .login-title {
+        text-align: center !important;
+        color: #2c3e50 !important;
+        font-size: 24px !important;
+        margin-bottom: 8px !important;
+        font-weight: 600 !important;
+        display: block !important;
+    }
+
+    #loginMask .login-subtitle {
+        text-align: center !important;
+        color: #7f8c8d !important;
+        font-size: 14px !important;
+        margin-bottom: 32px !important;
+        display: block !important;
+    }
+
+    #loginMask .error-tip {
+        text-align: center !important;
+        color: #ffffff !important;
+        background: #e74c3c !important;
+        font-size: 14px !important;
+        margin-bottom: 20px !important;
+        padding: 12px !important;
+        border-radius: 6px !important;
+        opacity: 0 !important;
+        transition: opacity 0.3s ease !important;
+        display: block !important;
+        border-left: 4px solid #c0392b !important;
+    }
+
+    #loginMask .error-tip.show {
+        opacity: 1 !important;
+    }
+
+    #loginMask .password-input {
+        width: 100% !important;
+        padding: 16px !important;
+        border: 2px solid #dce4ec !important;
+        border-radius: 8px !important;
+        font-size: 16px !important;
+        color: #34495e !important;
+        margin-bottom: 24px !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        transition: border-color 0.3s ease !important;
+    }
+
+    #loginMask .password-input:focus {
+        outline: none !important;
+        border-color: #667eea !important;
+    }
+
+    #loginMask .password-input::placeholder {
+        color: #95a5a6 !important;
+    }
+
+    #loginMask .submit-btn {
+        width: 100% !important;
+        padding: 16px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        display: block !important;
+        transition: transform 0.2s, box-shadow 0.2s !important;
+    }
+
+    #loginMask .submit-btn:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4) !important;
+    }
+
+    #loginMask .submit-btn:active {
+        transform: translateY(0) !important;
+    }
+
+    #loginMask .submit-btn:disabled {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
         transform: none !important;
-        transition: none !important;
     }
 
-    /* 3. 登录框样式 */
-    .login-container {
-        width: 100%;
-        max-width: 400px;
-        background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        padding: 48px 32px;
+    /* 4. 验证通过后，解锁页面的样式 */
+    body.unlock * {
+        display: initial !important;
     }
-
-    .login-title {
-        text-align: center;
-        color: #2c3e50;
-        font-size: 24px;
-        margin-bottom: 32px;
-        font-weight: 600;
-    }
-
-    .error-tip {
-        text-align: center;
-        color: #e74c3c;
-        font-size: 14px;
-        margin-bottom: 20px;
-        height: 20px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .error-tip.show {
-        opacity: 1;
-    }
-
-    .password-input {
-        width: 100%;
-        padding: 16px;
-        border: 1px solid #dce4ec;
-        border-radius: 8px;
-        font-size: 16px;
-        color: #34495e;
-        margin-bottom: 24px;
-    }
-
-    .password-input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .submit-btn {
-        width: 100%;
-        padding: 16px;
-        background: #667eea;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    .submit-btn:hover {
-        background: #5a6fd8;
+    body.unlock #loginMask {
+        display: none !important;
     }
 </style>
 
-<!-- 第二步：登录遮罩层（页面唯一可见元素） -->
+<!-- 第二步：登录遮罩层（唯一不被全局隐藏的元素） -->
 <div id="loginMask">
     <div class="login-container">
-        <h2 class="login-title">请输入 JupyterLite 访问密码</h2>
-        <div class="error-tip" id="errorTip">密码错误，请重新输入！</div>
-        <input type="password" class="password-input" id="passwordInput" placeholder="请输入访问密码">
-        <button class="submit-btn" onclick="verifyPassword()">确认访问</button>
+        <h2 class="login-title">🔬 JupyterLite</h2>
+        <p class="login-subtitle">请输入访问密码</p>
+        <div class="error-tip" id="errorTip">❌ 密码错误，请重试</div>
+        <input type="password" class="password-input" id="passwordInput" placeholder="请输入访问密码" autocomplete="off">
+        <button class="submit-btn" id="submitBtn" onclick="verifyPassword()">🔓 确认访问</button>
     </div>
 </div>
 
-<!-- 第三步：阻断式脚本，手动控制 JupyterLite 加载 -->
+<!-- 第三步：立即执行的验证脚本 -->
 <script>
-    // ************************ 必改：替换为你的密码 ************************
-    const CORRECT_PASSWORD = "your-custom-password-123";
-    // JupyterLite 核心脚本地址（与注释的脚本对应）
-    const JUPYTER_LITE_SCRIPT = "jupyter-lite.js";
-
-    // 标记：是否已通过验证（默认未通过）
-    let isVerified = false;
-
-    // 密码验证核心函数（验证通过后，手动加载 JupyterLite）
-    function verifyPassword() {
-        const inputPassword = document.getElementById("passwordInput").value.trim();
-        const errorTip = document.getElementById("errorTip");
-
-        errorTip.classList.remove("show");
-
-        if (inputPassword === CORRECT_PASSWORD && !isVerified) {
-            // 1. 标记为已验证，防止重复加载
-            isVerified = true;
-            // 2. 隐藏登录遮罩
-            document.getElementById("loginMask").style.display = "none";
-            // 3. 手动创建并加载 JupyterLite 核心脚本（关键步骤）
-            loadJupyterLite();
-        } else {
-            // 密码错误，提示并清空输入框
-            errorTip.classList.add("show");
-            document.getElementById("passwordInput").value = "";
+(function() {
+    'use strict';
+    
+    // ======================== 配置区域 ========================
+    const CONFIG = {
+        // 密码的 SHA-256 哈希值
+        // 如需修改密码，请在浏览器控制台运行下面的代码生成新哈希：
+        // async function hash(pwd) { const b = new TextEncoder().encode(pwd); const h = await crypto.subtle.digest('SHA-256', b); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+        // hash('你的密码').then(console.log)
+        passwordHash: "3c9f0ea65fca3ca5fbb3d558bc3c704ee06f94ea8e828ca0e9f8f8c73f8c0fcf",
+        
+        // 会话有效期（毫秒）- 默认 4 小时
+        sessionDuration: 4 * 60 * 60 * 1000,
+        
+        // 存储键名
+        storageKey: 'jupyterlite_auth_token'
+    };
+    
+    // ======================== 工具函数 ========================
+    
+    // SHA-256 哈希函数
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    // 检查认证状态
+    function checkAuth() {
+        try {
+            // 先检查 sessionStorage
+            let authData = sessionStorage.getItem(CONFIG.storageKey);
+            
+            // 如果 session 中没有，尝试从 localStorage 恢复（支持刷新后记住登录状态）
+            if (!authData) {
+                authData = localStorage.getItem(CONFIG.storageKey);
+                if (authData) {
+                    sessionStorage.setItem(CONFIG.storageKey, authData);
+                }
+            }
+            
+            if (!authData) return false;
+            
+            const auth = JSON.parse(authData);
+            const now = Date.now();
+            
+            // 检查是否过期
+            if (!auth.authenticated || !auth.expires || now > auth.expires) {
+                // 清除过期的认证信息
+                sessionStorage.removeItem(CONFIG.storageKey);
+                localStorage.removeItem(CONFIG.storageKey);
+                return false;
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('Auth check error:', e);
+            return false;
         }
     }
-
-    // 手动加载 JupyterLite 核心脚本
-    function loadJupyterLite() {
-        // 创建 script 标签
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = JUPYTER_LITE_SCRIPT;
-        // 加载完成后，恢复页面正常状态
-        script.onload = function() {
-            document.body.style.overflow = "auto";
-            console.log("JupyterLite 已成功加载");
+    
+    // 设置认证状态
+    function setAuth() {
+        const authData = {
+            authenticated: true,
+            timestamp: Date.now(),
+            expires: Date.now() + CONFIG.sessionDuration
         };
-        // 插入到 body 末尾，启动 JupyterLite
-        document.body.appendChild(script);
+        const authString = JSON.stringify(authData);
+        sessionStorage.setItem(CONFIG.storageKey, authString);
+        localStorage.setItem(CONFIG.storageKey, authString);
     }
-
-    // 支持回车键触发验证
-    document.getElementById("passwordInput").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
+    
+    // 解锁页面
+    function unlockPage() {
+        document.body.classList.add('unlock');
+        // 移除防护定时器
+        if (window.protectionTimer) {
+            clearInterval(window.protectionTimer);
+        }
+    }
+    
+    // 显示错误信息
+    function showError(message) {
+        const errorTip = document.getElementById('errorTip');
+        if (message) {
+            errorTip.textContent = message;
+        }
+        errorTip.classList.add('show');
+        
+        setTimeout(() => {
+            errorTip.classList.remove('show');
+        }, 3000);
+    }
+    
+    // ======================== 密码验证 ========================
+    
+    window.verifyPassword = async function() {
+        const inputPassword = document.getElementById('passwordInput').value.trim();
+        const submitBtn = document.getElementById('submitBtn');
+        const errorTip = document.getElementById('errorTip');
+        
+        // 清除之前的错误提示
+        errorTip.classList.remove('show');
+        
+        if (!inputPassword) {
+            showError('❌ 请输入密码');
+            return;
+        }
+        
+        // 禁用按钮，显示加载状态
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ 验证中...';
+        
+        try {
+            // 计算密码哈希
+            const hash = await sha256(inputPassword);
+            
+            if (hash === CONFIG.passwordHash) {
+                // 密码正确
+                setAuth();
+                submitBtn.textContent = '✅ 验证成功！';
+                submitBtn.style.background = '#27ae60';
+                
+                // 延迟解锁，让用户看到成功提示
+                setTimeout(() => {
+                    unlockPage();
+                }, 500);
+            } else {
+                // 密码错误
+                showError('❌ 密码错误，请重试');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🔓 确认访问';
+            }
+        } catch (e) {
+            console.error('Verification error:', e);
+            showError('❌ 验证失败，请重试');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🔓 确认访问';
+        }
+    };
+    
+    // 支持回车键触发
+    document.getElementById('passwordInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
             verifyPassword();
         }
     });
-
-    // 立即执行：冻结页面，确保登录框独占控制权
-    (function() {
-        // 强制禁止页面滚动和缩放
-        document.documentElement.style.overflow = "hidden";
-        document.body.style.overflow = "hidden";
-        // 强制显示登录遮罩，防止被任何脚本修改
-        setInterval(() => {
-            if (!isVerified) {
-                document.getElementById("loginMask").style.display = "flex";
-                document.documentElement.style.overflow = "hidden";
-                document.body.style.overflow = "hidden";
+    
+    // ======================== 初始化 ========================
+    
+    // 强制锁住页面
+    document.body.classList.remove('unlock');
+    
+    // 检查是否已经认证
+    if (checkAuth()) {
+        // 已认证，直接解锁
+        unlockPage();
+    } else {
+        // 未认证，显示登录界面
+        document.getElementById('loginMask').style.display = 'flex';
+        
+        // 防止页面被其他脚本提前解锁（定时检查）
+        window.protectionTimer = setInterval(() => {
+            if (!document.body.classList.contains('unlock')) {
+                document.body.classList.remove('unlock');
             }
-        }, 50);
-    })();
+        }, 100);
+        
+        // 自动聚焦密码输入框
+        setTimeout(() => {
+            document.getElementById('passwordInput').focus();
+        }, 100);
+    }
+})();
 </script>
