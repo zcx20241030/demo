@@ -32,23 +32,42 @@ jobs:
           # 下载第三方库（如果需要）
           if [ -f requirements-jupyterlite.txt ]; then
             mkdir -p dist/pypi
-            pip download -r requirements-jupyterlite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
+            pip download -r requirements-lite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
           fi
       
       - name: Add password protection
         run: |
-          # 备份原始 index.html 到 _jupyter.html
-          mv dist/index.html dist/_jupyter.html
+          echo "=== Adding password protection ==="
           
-          # 复制密码保护页面作为新的 index.html
+          # 将原始 index.html 重命名为 jupyter-main.html
+          if [ -f dist/index.html ]; then
+            mv dist/index.html dist/jupyter-main.html
+            echo "Renamed index.html to jupyter-main.html"
+          else
+            echo "ERROR: dist/index.html not found!"
+            ls -la dist/
+            exit 1
+          fi
+          
+          # 复制密码页面作为新的 index.html
           cp login-embed.html dist/index.html
+          echo "Copied login-embed.html as new index.html"
           
-          # 修改密码页面中的 iframe src（如果原始页面在根目录）
-          # sed -i "s|lab/index.html|_jupyter.html|" dist/index.html
+          # 创建认证检查脚本（注入到 jupyter-main.html）
+          cat > dist/auth-check-inline.js << 'EOF'
+(function() {
+  if (sessionStorage.getItem('authenticated') !== 'true') {
+    window.location.href = './index.html';
+  }
+})();
+EOF
           
-          echo "=== Password protection added ==="
-          echo "File structure:"
-          ls -la dist/
+          # 在 jupyter-main.html 开头注入认证检查脚本
+          echo "<script>$(cat dist/auth-check-inline.js)</script>" | cat - dist/jupyter-main.html > temp && mv temp dist/jupyter-main.html
+          
+          echo "=== Password protection added successfully ==="
+          echo "Files in dist/:"
+          ls -lh dist/*.html
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
