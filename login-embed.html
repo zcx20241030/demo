@@ -1,87 +1,259 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protected Access</title>
+    <title>JupyterLite - Protected Access</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .login-box {
+        
+        .container {
             background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 50px 40px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
             text-align: center;
+            width: 90%;
+            max-width: 420px;
         }
+        
+        .lock-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
         input[type="password"] {
-            padding: 10px;
-            width: 250px;
-            margin: 20px 0;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 16px;
+            transition: all 0.3s;
         }
-        button {
-            padding: 10px 30px;
+        
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
             background: #667eea;
             color: white;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        button:hover {
+        
+        .btn-submit:hover {
             background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
-        .error {
-            color: red;
-            margin-top: 10px;
+        
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+            display: block;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+            display: block;
+        }
+        
+        .debug-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            text-align: left;
+            display: none;
+        }
+        
+        .debug-info.show {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h2>🔒 JupyterLite Access</h2>
-        <p>Please enter password to continue</p>
-        <input type="password" id="password" placeholder="Enter password">
-        <br>
-        <button onclick="checkPassword()">Submit</button>
-        <div id="error" class="error"></div>
+    <div class="container">
+        <div class="lock-icon">🔒</div>
+        <h1>JupyterLite Access</h1>
+        <p class="subtitle">Please enter password to continue</p>
+        
+        <form id="loginForm" onsubmit="return false;">
+            <div class="input-group">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="Enter password"
+                    autocomplete="off"
+                    required
+                >
+            </div>
+            
+            <button type="button" class="btn-submit" id="submitBtn">
+                Submit
+            </button>
+        </form>
+        
+        <div id="message" class="message"></div>
+        <div id="debugInfo" class="debug-info"></div>
     </div>
 
     <script>
-        // SHA-256 hash of "jupyter123"
-        const PASSWORD_HASH = "ae4ec82a5dd33bf96717f2e2a38b0d6a9ab44b86786f3eaf281b8289cf58fb17";
+        // 正确密码的 SHA-256 哈希值 (密码: jupyter123)
+        const CORRECT_HASH = "5466a679828755f4bc3d80a9a9247d69b127571b2205cc9fa19315ba6d263621";
         
-        async function sha256(message) {
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        // SHA-256 哈希函数
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
         }
-
-        async function checkPassword() {
-            const input = document.getElementById('password').value;
-            const hash = await sha256(input);
+        
+        // 显示消息
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+        }
+        
+        // 显示调试信息
+        function showDebug(inputHash, expectedHash) {
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML = `
+                <strong>Debug Info:</strong><br>
+                Input Hash: ${inputHash}<br>
+                Expected Hash: ${expectedHash}<br>
+                Match: ${inputHash === expectedHash ? 'YES ✓' : 'NO ✗'}
+            `;
+            debugDiv.classList.add('show');
+        }
+        
+        // 验证密码
+        async function validatePassword() {
+            const passwordInput = document.getElementById('passwordInput');
+            const password = passwordInput.value;
             
-            if (hash === PASSWORD_HASH) {
-                sessionStorage.setItem('authenticated', 'true');
-                window.location.href = 'lab/index.html';
-            } else {
-                document.getElementById('error').textContent = 'Incorrect password';
+            // 清除之前的消息
+            document.getElementById('message').className = 'message';
+            document.getElementById('debugInfo').classList.remove('show');
+            
+            if (!password) {
+                showMessage('Please enter a password', 'error');
+                return;
+            }
+            
+            try {
+                // 计算输入密码的哈希值
+                const inputHash = await hashPassword(password);
+                
+                // 调试输出到控制台
+                console.log('=== Password Verification ===');
+                console.log('Input password:', password);
+                console.log('Input hash:', inputHash);
+                console.log('Expected hash:', CORRECT_HASH);
+                console.log('Match:', inputHash === CORRECT_HASH);
+                console.log('===========================');
+                
+                // 验证哈希值
+                if (inputHash === CORRECT_HASH) {
+                    // 密码正确
+                    showMessage('Access granted! Redirecting...', 'success');
+                    sessionStorage.setItem('authenticated', 'true');
+                    
+                    // 延迟跳转
+                    setTimeout(() => {
+                        window.location.href = 'lab/index.html';
+                    }, 800);
+                } else {
+                    // 密码错误
+                    showMessage('Incorrect password', 'error');
+                    showDebug(inputHash, CORRECT_HASH);
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('An error occurred. Please try again.', 'error');
             }
         }
-
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') checkPassword();
+        
+        // 事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('passwordInput');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 点击提交按钮
+            submitBtn.addEventListener('click', validatePassword);
+            
+            // 按 Enter 键提交
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    validatePassword();
+                }
+            });
+            
+            // 自动聚焦输入框
+            passwordInput.focus();
         });
     </script>
 </body>
