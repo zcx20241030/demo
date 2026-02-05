@@ -14,17 +14,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install the dependencies
         run: |
           python -m pip install -r requirements.txt
+      
       - name: Build the JupyterLite site
         run: |
+          mkdir -p content
           cp README.md content
+          # 可选：预安装第三方库，需创建 requirements-lite.txt
           jupyter lite build --contents content --output-dir dist
+      
+      - name: Add password protection (optional)
+        run: |
+          # 备份原 JupyterLite 入口文件
+          mv dist/index.html dist/jupyterlite-index.html
+          # 复制自定义登录页面（需提前在仓库根目录创建 login.html）
+          if [ -f "login.html" ]; then
+            cp login.html dist/index.html
+            echo "Password protection added successfully."
+          else
+            echo "login.html not found, skip password protection."
+          fi
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -46,4 +72,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-  
