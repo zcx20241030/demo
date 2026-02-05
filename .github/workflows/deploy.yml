@@ -38,17 +38,21 @@ jobs:
           cp README.md content
           # 可选：预安装第三方库，需创建 requirements-lite.txt
           jupyter lite build --contents content --output-dir dist
-      
-      - name: Add password protection (optional)
+
+      # 替换原来的 Add password protection 步骤
+      - name: Embed password protection into JupyterLite index
         run: |
-          # 备份原 JupyterLite 入口文件
-          mv dist/index.html dist/jupyterlite-index.html
-          # 复制自定义登录页面（需提前在仓库根目录创建 login.html）
-          if [ -f "login.html" ]; then
-            cp login.html dist/index.html
-            echo "Password protection added successfully."
+          # 确保 content 目录存在（如需保留）
+          mkdir -p content
+          cp README.md content
+          # 构建 JupyterLite（无需修改文件名）
+          jupyter lite build --contents content --output-dir dist
+          # 嵌入登录代码：将 login-embed.html 内容插入到 dist/index.html 开头
+          if [ -f "login-embed.html" ]; then
+            cat login-embed.html dist/index.html > dist/temp.html && mv dist/temp.html dist/index.html
+            echo "Password protection embedded successfully."
           else
-            echo "login.html not found, skip password protection."
+            echo "login-embed.html not found, skip password protection."
           fi
       
       - name: Upload artifact
