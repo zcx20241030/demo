@@ -1,90 +1,99 @@
-<!-- 仅保留样式、遮罩层、脚本，无 html/head/body 标签 -->
+<!-- 第一步：先定义全局样式，强制隐藏 JupyterLite 所有内容，直到验证通过 -->
 <style>
-    /* 登录遮罩：覆盖整个页面，层级最高 */
+    /* 1. 强制隐藏整个页面的所有内容（除了登录遮罩） */
+    body * {
+        display: none !important;
+    }
+
+    /* 2. 登录遮罩样式（单独生效，不被上面的全局隐藏影响） */
     #loginMask {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999; /* 确保在 JupyterLite 所有元素之上 */
-        margin: 0;
-        padding: 0;
-        /* 强制固定，防止被 JupyterLite 样式覆盖 */
         position: fixed !important;
-        z-index: 9999 !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 999999 !important; /* 超高层级，确保不被任何元素覆盖 */
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    /* 登录框样式 */
-    .login-container {
-        width: 100%;
-        max-width: 400px;
-        background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        padding: 48px 32px;
+
+    /* 3. 登录框内部样式 */
+    #loginMask .login-container {
+        width: 100% !important;
+        max-width: 400px !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+        padding: 48px 32px !important;
+        display: block !important; /* 确保登录框内部元素显示 */
     }
-    .login-title {
-        text-align: center;
-        color: #2c3e50;
-        font-size: 24px;
-        margin-bottom: 32px;
-        font-weight: 600;
+
+    #loginMask .login-title {
+        text-align: center !important;
+        color: #2c3e50 !important;
+        font-size: 24px !important;
+        margin-bottom: 32px !important;
+        font-weight: 600 !important;
+        display: block !important;
     }
-    .error-tip {
-        text-align: center;
-        color: #e74c3c;
-        font-size: 14px;
-        margin-bottom: 20px;
-        height: 20px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+
+    #loginMask .error-tip {
+        text-align: center !important;
+        color: #e74c3c !important;
+        font-size: 14px !important;
+        margin-bottom: 20px !important;
+        height: 20px !important;
+        opacity: 0 !important;
+        transition: opacity 0.3s ease !important;
+        display: block !important;
     }
-    .error-tip.show {
-        opacity: 1;
+
+    #loginMask .error-tip.show {
+        opacity: 1 !important;
     }
-    .password-input {
-        width: 100%;
-        padding: 16px;
-        border: 1px solid #dce4ec;
-        border-radius: 8px;
-        font-size: 16px;
-        color: #34495e;
-        margin-bottom: 24px;
-        transition: border-color 0.3s ease;
+
+    #loginMask .password-input {
+        width: 100% !important;
+        padding: 16px !important;
+        border: 1px solid #dce4ec !important;
+        border-radius: 8px !important;
+        font-size: 16px !important;
+        color: #34495e !important;
+        margin-bottom: 24px !important;
+        display: block !important;
     }
-    .password-input::placeholder {
-        color: #95a5a6;
+
+    #loginMask .password-input::placeholder {
+        color: #95a5a6 !important;
     }
-    .password-input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+    #loginMask .submit-btn {
+        width: 100% !important;
+        padding: 16px !important;
+        background: #667eea !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        display: block !important;
     }
-    .submit-btn {
-        width: 100%;
-        padding: 16px;
-        background: #667eea;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
+
+    /* 4. 验证通过后，解锁页面的样式 */
+    body.unlock * {
+        display: initial !important;
     }
-    .submit-btn:hover {
-        background: #5a6fd8;
-    }
-    .submit-btn:active {
-        background: #4e62d9;
+    body.unlock #loginMask {
+        display: none !important;
     }
 </style>
 
-<!-- 登录遮罩层（直接嵌入到页面中，无 body 包裹） -->
+<!-- 第二步：登录遮罩层（唯一不被全局隐藏的元素） -->
 <div id="loginMask">
     <div class="login-container">
         <h2 class="login-title">请输入 JupyterLite 访问密码</h2>
@@ -94,39 +103,44 @@
     </div>
 </div>
 
+<!-- 第三步：立即执行的验证脚本，不等待任何页面加载 -->
 <script>
     // ************************ 必改：替换为你的密码 ************************
-    const CORRECT_PASSWORD = "Gz@2026!";
+    const CORRECT_PASSWORD = "Eisoo123?";
 
-    // 密码验证函数
+    // 强制锁住页面：确保 body 没有 unlock 类（默认隐藏所有内容）
+    document.body.classList.remove("unlock");
+
+    // 密码验证核心函数（验证通过才解锁页面）
     function verifyPassword() {
         const inputPassword = document.getElementById("passwordInput").value.trim();
         const errorTip = document.getElementById("errorTip");
 
-        // 清空之前的错误提示
         errorTip.classList.remove("show");
 
         if (inputPassword === CORRECT_PASSWORD) {
-            // 密码正确：隐藏登录遮罩，显示 JupyterLite 主界面
-            document.getElementById("loginMask").style.display = "none";
-            // 额外：移除遮罩层，释放内存（可选）
-            // document.body.removeChild(document.getElementById("loginMask"));
+            // 关键：给 body 添加 unlock 类，解锁 JupyterLite 内容，同时隐藏遮罩
+            document.body.classList.add("unlock");
         } else {
-            // 密码错误：显示提示并清空输入框
             errorTip.classList.add("show");
             document.getElementById("passwordInput").value = "";
         }
     }
 
-    // 支持回车键触发验证
+    // 支持回车键触发
     document.getElementById("passwordInput").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
-            verifyPassword();
-        }
+        if (e.key === "Enter") verifyPassword();
     });
 
-    // 额外：确保页面加载完成后遮罩层才显示（防止被提前渲染）
-    window.onload = function() {
+    // 立即执行：确保遮罩层优先显示，页面始终处于锁住状态
+    (function() {
+        // 强制显示遮罩层
         document.getElementById("loginMask").style.display = "flex";
-    };
+        // 防止页面被其他脚本提前解锁
+        setInterval(() => {
+            if (!document.body.classList.contains("unlock")) {
+                document.body.classList.remove("unlock");
+            }
+        }, 100);
+    })();
 </script>
