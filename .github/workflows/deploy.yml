@@ -55,12 +55,12 @@ jobs:
           
           # 创建认证检查脚本（注入到 jupyter-main.html）
           cat > dist/auth-check-inline.js << 'EOF'
-(function() {
-  if (sessionStorage.getItem('authenticated') !== 'true') {
-    window.location.href = './index.html';
-  }
-})();
-EOF
+          (function() {
+            if (sessionStorage.getItem('authenticated') !== 'true') {
+              window.location.href = './index.html';
+            }
+          })();
+          EOF
           
           # 在 jupyter-main.html 开头注入认证检查脚本
           echo "<script>$(cat dist/auth-check-inline.js)</script>" | cat - dist/jupyter-main.html > temp && mv temp dist/jupyter-main.html
