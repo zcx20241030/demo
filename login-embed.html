@@ -13,11 +13,19 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        /* 登录页面样式 */
+        #loginPage {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #loginPage.hidden {
+            display: none;
         }
         
         .container {
@@ -112,46 +120,58 @@
             display: block;
         }
         
-        .debug-info {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: monospace;
-            text-align: left;
+        /* JupyterLite 容器样式 */
+        #jupyterContainer {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
         }
         
-        .debug-info.show {
+        #jupyterContainer.show {
             display: block;
+        }
+        
+        #jupyterFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="lock-icon">🔒</div>
-        <h1>JupyterLite Access</h1>
-        <p class="subtitle">Please enter password to continue</p>
-        
-        <form id="loginForm" onsubmit="return false;">
-            <div class="input-group">
-                <input 
-                    type="password" 
-                    id="passwordInput" 
-                    placeholder="Enter password"
-                    autocomplete="off"
-                    required
-                >
-            </div>
+    <!-- 登录页面 -->
+    <div id="loginPage">
+        <div class="container">
+            <div class="lock-icon">🔒</div>
+            <h1>JupyterLite Access</h1>
+            <p class="subtitle">Please enter password to continue</p>
             
-            <button type="button" class="btn-submit" id="submitBtn">
-                Submit
-            </button>
-        </form>
-        
-        <div id="message" class="message"></div>
-        <div id="debugInfo" class="debug-info"></div>
+            <form id="loginForm" onsubmit="return false;">
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="passwordInput" 
+                        placeholder="Enter password"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
+                
+                <button type="button" class="btn-submit" id="submitBtn">
+                    Submit
+                </button>
+            </form>
+            
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+    
+    <!-- JupyterLite 容器 -->
+    <div id="jupyterContainer">
+        <iframe id="jupyterFrame" src=""></iframe>
     </div>
 
     <script>
@@ -175,16 +195,11 @@
             messageDiv.className = 'message ' + type;
         }
         
-        // 显示调试信息
-        function showDebug(inputHash, expectedHash) {
-            const debugDiv = document.getElementById('debugInfo');
-            debugDiv.innerHTML = `
-                <strong>Debug Info:</strong><br>
-                Input Hash: ${inputHash}<br>
-                Expected Hash: ${expectedHash}<br>
-                Match: ${inputHash === expectedHash ? 'YES ✓' : 'NO ✗'}
-            `;
-            debugDiv.classList.add('show');
+        // 显示 JupyterLite
+        function showJupyter() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('jupyterContainer').classList.add('show');
+            document.getElementById('jupyterFrame').src = 'lab/index.html';
         }
         
         // 验证密码
@@ -194,7 +209,6 @@
             
             // 清除之前的消息
             document.getElementById('message').className = 'message';
-            document.getElementById('debugInfo').classList.remove('show');
             
             if (!password) {
                 showMessage('Please enter a password', 'error');
@@ -206,27 +220,19 @@
                 const inputHash = await hashPassword(password);
                 
                 // 调试输出到控制台
-                console.log('=== Password Verification ===');
-                console.log('Input password:', password);
-                console.log('Input hash:', inputHash);
-                console.log('Expected hash:', CORRECT_HASH);
-                console.log('Match:', inputHash === CORRECT_HASH);
-                console.log('===========================');
+                console.log('Password verification:', inputHash === CORRECT_HASH ? 'SUCCESS' : 'FAILED');
                 
                 // 验证哈希值
                 if (inputHash === CORRECT_HASH) {
                     // 密码正确
-                    showMessage('Access granted! Redirecting...', 'success');
+                    showMessage('Access granted! Loading...', 'success');
                     sessionStorage.setItem('authenticated', 'true');
                     
-                    // 延迟跳转
-                    setTimeout(() => {
-                        window.location.href = 'lab/index.html';
-                    }, 800);
+                    // 延迟显示 JupyterLite
+                    setTimeout(showJupyter, 500);
                 } else {
                     // 密码错误
                     showMessage('Incorrect password', 'error');
-                    showDebug(inputHash, CORRECT_HASH);
                     passwordInput.value = '';
                     passwordInput.focus();
                 }
@@ -236,10 +242,20 @@
             }
         }
         
+        // 检查是否已认证
+        function checkAuth() {
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                showJupyter();
+            }
+        }
+        
         // 事件监听
         document.addEventListener('DOMContentLoaded', function() {
             const passwordInput = document.getElementById('passwordInput');
             const submitBtn = document.getElementById('submitBtn');
+            
+            // 检查认证状态
+            checkAuth();
             
             // 点击提交按钮
             submitBtn.addEventListener('click', validatePassword);
@@ -253,7 +269,9 @@
             });
             
             // 自动聚焦输入框
-            passwordInput.focus();
+            if (sessionStorage.getItem('authenticated') !== 'true') {
+                passwordInput.focus();
+            }
         });
     </script>
 </body>
