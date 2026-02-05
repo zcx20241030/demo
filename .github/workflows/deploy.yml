@@ -40,20 +40,21 @@ jobs:
           jupyter lite build --contents content --output-dir dist
 
       # 替换原来的 Add password protection 步骤
-      - name: Embed password protection into JupyterLite index
+      - name: Embed password protection and block JupyterLite load
         run: |
-          # 确保 content 目录存在（如需保留）
+          # 1. 构建 JupyterLite
           mkdir -p content
           cp README.md content
-          # 构建 JupyterLite（无需修改文件名）
           jupyter lite build --contents content --output-dir dist
-          # 嵌入登录代码：将 login-embed.html 内容插入到 dist/index.html 开头
+          # 2. 嵌入登录验证代码
           if [ -f "login-embed.html" ]; then
             cat login-embed.html dist/index.html > dist/temp.html && mv dist/temp.html dist/index.html
             echo "Password protection embedded successfully."
           else
             echo "login-embed.html not found, skip password protection."
           fi
+          # 3. 关键：注释掉 JupyterLite 的自动加载脚本（防止它提前启动）
+          sed -i 's/<script type="module" src="jupyter-lite.js"><\/script>/<!-- <script type="module" src="jupyter-lite.js"><\/script> -->/g' dist/index.html
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
