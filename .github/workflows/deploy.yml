@@ -1,5 +1,4 @@
 name: Build and Deploy
-
 on:
   push:
     branches:
@@ -7,7 +6,6 @@ on:
   pull_request:
     branches:
       - '*'
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,37 +18,36 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
       - name: Install the dependencies
         run: |
           python -m pip install -r requirements.txt
       
       - name: Build the JupyterLite site
         run: |
-          mkdir -p content
           cp README.md content
-          # 可选：预安装第三方库，需创建 requirements-lite.txt
           jupyter lite build --contents content --output-dir dist
-
-      # 替换原来的 Add password protection 步骤
-      - name: Add password protection (optional)
+          
+          # 下载第三方库
+          mkdir -p dist/pypi
+          pip download -r requirements-jupyterlite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
+      
+      - name: Add password protection
         run: |
-          # 备份原 JupyterLite 入口文件（这行必须正常执行）
-          mv dist/index.html dist/jupyterlite-index.html
-          # 复制自定义登录页面
-          if [ -f "login.html" ]; then
-            cp login.html dist/index.html
-            echo "Password protection added successfully."
-          else
-            echo "login.html not found, skip password protection."
-          fi
+          # 备份原始 index.html
+          mv dist/index.html dist/lab/index.html || true
+          
+          # 复制密码页面作为新的 index.html
+          cp password.html dist/index.html
+          
+          # 创建认证检查脚本
+          cat > dist/lab/auth-check.js << 'EOF'
+          if (sessionStorage.getItem('authenticated') !== 'true') {
+            window.location.href = '../index.html';
+          }
+          EOF
+          
+          # 在 lab/index.html 中注入认证检查
+          sed -i 's/<head>/<head><script src="auth-check.js"><\/script>/' dist/lab/index.html
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -63,11 +60,9 @@ jobs:
     permissions:
       pages: write
       id-token: write
-
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
