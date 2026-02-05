@@ -1,4 +1,5 @@
 {
+    "baseUrl": "/demo/",  // 关键：匹配实际部署的子路径
     "jupyter-lite-schema-version": 0,
     "jupyter-config-data": {
       "disabledExtensions": [
