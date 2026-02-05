@@ -1,4 +1,5 @@
 name: Build and Deploy
+
 on:
   push:
     branches:
@@ -6,6 +7,7 @@ on:
   pull_request:
     branches:
       - '*'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,27 +29,26 @@ jobs:
           cp README.md content
           jupyter lite build --contents content --output-dir dist
           
-          # 下载第三方库
-          mkdir -p dist/pypi
-          pip download -r requirements-lite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
+          # 下载第三方库（如果需要）
+          if [ -f requirements-jupyterlite.txt ]; then
+            mkdir -p dist/pypi
+            pip download -r requirements-jupyterlite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
+          fi
       
       - name: Add password protection
         run: |
-          # 备份原始 index.html
-          mv dist/index.html dist/lab/index.html || true
+          # 备份原始 index.html 到 _jupyter.html
+          mv dist/index.html dist/_jupyter.html
           
-          # 复制密码页面作为新的 index.html
-          cp login-embed.html dist/index.html
+          # 复制密码保护页面作为新的 index.html
+          cp password.html dist/index.html
           
-          # 创建认证检查脚本
-          cat > dist/lab/auth-check.js << 'EOF'
-          if (sessionStorage.getItem('authenticated') !== 'true') {
-            window.location.href = '../index.html';
-          }
-          EOF
+          # 修改密码页面中的 iframe src（如果原始页面在根目录）
+          # sed -i "s|lab/index.html|_jupyter.html|" dist/index.html
           
-          # 在 lab/index.html 中注入认证检查
-          sed -i 's/<head>/<head><script src="auth-check.js"><\/script>/' dist/lab/index.html
+          echo "=== Password protection added ==="
+          echo "File structure:"
+          ls -la dist/
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
