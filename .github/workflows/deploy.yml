@@ -29,7 +29,7 @@ jobs:
           
           # 下载第三方库
           mkdir -p dist/pypi
-          pip download -r requirements-jupyterlite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
+          pip download -r requirements-lite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
       
       - name: Add password protection
         run: |
@@ -37,7 +37,7 @@ jobs:
           mv dist/index.html dist/lab/index.html || true
           
           # 复制密码页面作为新的 index.html
-          cp password.html dist/index.html
+          cp login-embed.html dist/index.html
           
           # 创建认证检查脚本
           cat > dist/lab/auth-check.js << 'EOF'
