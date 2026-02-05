@@ -1,11 +1,14 @@
-<!-- 第一步：先定义全局样式，强制隐藏 JupyterLite 所有内容，直到验证通过 -->
+<!-- 第一步：全局样式，强制独占页面 -->
 <style>
-    /* 1. 强制隐藏整个页面的所有内容（除了登录遮罩） */
-    body * {
-        display: none !important;
+    /* 1. 独占页面，隐藏所有无关内容 */
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden !important;
     }
 
-    /* 2. 登录遮罩样式（单独生效，不被上面的全局隐藏影响） */
+    /* 2. 登录遮罩层（独占整个视口，无任何元素能穿透） */
     #loginMask {
         position: fixed !important;
         top: 0 !important;
@@ -16,84 +19,79 @@
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        z-index: 999999 !important; /* 超高层级，确保不被任何元素覆盖 */
-        margin: 0 !important;
-        padding: 0 !important;
+        z-index: 999999 !important;
+        /* 强制固定，永不被滚动或缩放影响 */
+        transform: none !important;
+        transition: none !important;
     }
 
-    /* 3. 登录框内部样式 */
-    #loginMask .login-container {
-        width: 100% !important;
-        max-width: 400px !important;
-        background: #ffffff !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
-        padding: 48px 32px !important;
-        display: block !important; /* 确保登录框内部元素显示 */
+    /* 3. 登录框样式 */
+    .login-container {
+        width: 100%;
+        max-width: 400px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        padding: 48px 32px;
     }
 
-    #loginMask .login-title {
-        text-align: center !important;
-        color: #2c3e50 !important;
-        font-size: 24px !important;
-        margin-bottom: 32px !important;
-        font-weight: 600 !important;
-        display: block !important;
+    .login-title {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 24px;
+        margin-bottom: 32px;
+        font-weight: 600;
     }
 
-    #loginMask .error-tip {
-        text-align: center !important;
-        color: #e74c3c !important;
-        font-size: 14px !important;
-        margin-bottom: 20px !important;
-        height: 20px !important;
-        opacity: 0 !important;
-        transition: opacity 0.3s ease !important;
-        display: block !important;
+    .error-tip {
+        text-align: center;
+        color: #e74c3c;
+        font-size: 14px;
+        margin-bottom: 20px;
+        height: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
-    #loginMask .error-tip.show {
-        opacity: 1 !important;
+    .error-tip.show {
+        opacity: 1;
     }
 
-    #loginMask .password-input {
-        width: 100% !important;
-        padding: 16px !important;
-        border: 1px solid #dce4ec !important;
-        border-radius: 8px !important;
-        font-size: 16px !important;
-        color: #34495e !important;
-        margin-bottom: 24px !important;
-        display: block !important;
+    .password-input {
+        width: 100%;
+        padding: 16px;
+        border: 1px solid #dce4ec;
+        border-radius: 8px;
+        font-size: 16px;
+        color: #34495e;
+        margin-bottom: 24px;
     }
 
-    #loginMask .password-input::placeholder {
-        color: #95a5a6 !important;
+    .password-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
-    #loginMask .submit-btn {
-        width: 100% !important;
-        padding: 16px !important;
-        background: #667eea !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-size: 16px !important;
-        font-weight: 500 !important;
-        cursor: pointer !important;
-        display: block !important;
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        background: #667eea;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
 
-    /* 4. 验证通过后，解锁页面的样式 */
-    body.unlock * {
-        display: initial !important;
-    }
-    body.unlock #loginMask {
-        display: none !important;
+    .submit-btn:hover {
+        background: #5a6fd8;
     }
 </style>
 
-<!-- 第二步：登录遮罩层（唯一不被全局隐藏的元素） -->
+<!-- 第二步：登录遮罩层（页面唯一可见元素） -->
 <div id="loginMask">
     <div class="login-container">
         <h2 class="login-title">请输入 JupyterLite 访问密码</h2>
@@ -103,44 +101,71 @@
     </div>
 </div>
 
-<!-- 第三步：立即执行的验证脚本，不等待任何页面加载 -->
+<!-- 第三步：阻断式脚本，手动控制 JupyterLite 加载 -->
 <script>
     // ************************ 必改：替换为你的密码 ************************
-    const CORRECT_PASSWORD = "Eisoo123?";
+    const CORRECT_PASSWORD = "your-custom-password-123";
+    // JupyterLite 核心脚本地址（与注释的脚本对应）
+    const JUPYTER_LITE_SCRIPT = "jupyter-lite.js";
 
-    // 强制锁住页面：确保 body 没有 unlock 类（默认隐藏所有内容）
-    document.body.classList.remove("unlock");
+    // 标记：是否已通过验证（默认未通过）
+    let isVerified = false;
 
-    // 密码验证核心函数（验证通过才解锁页面）
+    // 密码验证核心函数（验证通过后，手动加载 JupyterLite）
     function verifyPassword() {
         const inputPassword = document.getElementById("passwordInput").value.trim();
         const errorTip = document.getElementById("errorTip");
 
         errorTip.classList.remove("show");
 
-        if (inputPassword === CORRECT_PASSWORD) {
-            // 关键：给 body 添加 unlock 类，解锁 JupyterLite 内容，同时隐藏遮罩
-            document.body.classList.add("unlock");
+        if (inputPassword === CORRECT_PASSWORD && !isVerified) {
+            // 1. 标记为已验证，防止重复加载
+            isVerified = true;
+            // 2. 隐藏登录遮罩
+            document.getElementById("loginMask").style.display = "none";
+            // 3. 手动创建并加载 JupyterLite 核心脚本（关键步骤）
+            loadJupyterLite();
         } else {
+            // 密码错误，提示并清空输入框
             errorTip.classList.add("show");
             document.getElementById("passwordInput").value = "";
         }
     }
 
-    // 支持回车键触发
+    // 手动加载 JupyterLite 核心脚本
+    function loadJupyterLite() {
+        // 创建 script 标签
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = JUPYTER_LITE_SCRIPT;
+        // 加载完成后，恢复页面正常状态
+        script.onload = function() {
+            document.body.style.overflow = "auto";
+            console.log("JupyterLite 已成功加载");
+        };
+        // 插入到 body 末尾，启动 JupyterLite
+        document.body.appendChild(script);
+    }
+
+    // 支持回车键触发验证
     document.getElementById("passwordInput").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") verifyPassword();
+        if (e.key === "Enter") {
+            verifyPassword();
+        }
     });
 
-    // 立即执行：确保遮罩层优先显示，页面始终处于锁住状态
+    // 立即执行：冻结页面，确保登录框独占控制权
     (function() {
-        // 强制显示遮罩层
-        document.getElementById("loginMask").style.display = "flex";
-        // 防止页面被其他脚本提前解锁
+        // 强制禁止页面滚动和缩放
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+        // 强制显示登录遮罩，防止被任何脚本修改
         setInterval(() => {
-            if (!document.body.classList.contains("unlock")) {
-                document.body.classList.remove("unlock");
+            if (!isVerified) {
+                document.getElementById("loginMask").style.display = "flex";
+                document.documentElement.style.overflow = "hidden";
+                document.body.style.overflow = "hidden";
             }
-        }, 100);
+        }, 50);
     })();
 </script>
