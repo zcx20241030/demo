@@ -27,7 +27,7 @@ jobs:
       - name: Build the JupyterLite site
         run: |
           cp README.md content
-          jupyter lite build --contents content --output-dir dist
+          jupyter lite build --contents content --output-dir dist --base-url /demo/
           
           # 下载第三方库（如果需要）
           if [ -f requirements-jupyterlite.txt ]; then
