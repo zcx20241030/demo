@@ -14,61 +14,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
       - name: Install the dependencies
         run: |
           python -m pip install -r requirements.txt
-      
       - name: Build the JupyterLite site
         run: |
           cp README.md content
-          jupyter lite build --contents content --output-dir dist --base-url /demo/
-          
-          # 下载第三方库（如果需要）
-          if [ -f requirements-jupyterlite.txt ]; then
-            mkdir -p dist/pypi
-            pip download -r requirements-lite.txt -d dist/pypi --platform any --python-version 311 --only-binary=:all: || true
-          fi
-      
-      - name: Add password protection
-        run: |
-          echo "=== Adding password protection ==="
-          
-          # 将原始 index.html 重命名为 jupyter-main.html
-          if [ -f dist/index.html ]; then
-            mv dist/index.html dist/jupyter-main.html
-            echo "Renamed index.html to jupyter-main.html"
-          else
-            echo "ERROR: dist/index.html not found!"
-            ls -la dist/
-            exit 1
-          fi
-          
-          # 复制密码页面作为新的 index.html
-          cp login-embed.html dist/index.html
-          echo "Copied login-embed.html as new index.html"
-          
-          # 创建认证检查脚本（注入到 jupyter-main.html）
-          cat > dist/auth-check-inline.js << 'EOF'
-          (function() {
-            if (sessionStorage.getItem('authenticated') !== 'true') {
-              window.location.href = './index.html';
-            }
-          })();
-          EOF
-          
-          # 在 jupyter-main.html 开头注入认证检查脚本
-          echo "<script>$(cat dist/auth-check-inline.js)</script>" | cat - dist/jupyter-main.html > temp && mv temp dist/jupyter-main.html
-          
-          echo "=== Password protection added successfully ==="
-          echo "Files in dist/:"
-          ls -lh dist/*.html
-      
+          jupyter lite build --contents content --output-dir dist
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -80,11 +36,14 @@ jobs:
     permissions:
       pages: write
       id-token: write
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  
